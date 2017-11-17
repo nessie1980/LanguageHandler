@@ -26,11 +26,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace LanguageFileHandler
+namespace LanguageHandler
 {
     public class GetLanguageKeysInProejctFiles
     {
-        #region Variables
+        #region Fields
 
         /// <summary>
         /// Path to the project
@@ -40,14 +40,14 @@ namespace LanguageFileHandler
         /// <summary>
         /// List with all .cs files of the project
         /// </summary>
-        private List<string> _listProjectFiles = new List<string>();
+        private readonly List<string> _listProjectFiles = new List<string>();
 
         /// <summary>
         /// List of all language keys in the .cs files as key and as value the .cs file name
         /// </summary>
-        private Dictionary<string, string> _listOfLangaugeKeysAndProjectFileName = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _listOfLangaugeKeysAndProjectFileName = new Dictionary<string, string>();
 
-        #endregion Variables
+        #endregion Fields
 
         #region Properties
 
@@ -58,10 +58,7 @@ namespace LanguageFileHandler
             internal set
             {
                 // Check if the path is valid
-                if (Directory.Exists(value))
-                    _projectPath = value;
-                else
-                    _projectPath = null;
+                _projectPath = Directory.Exists(value) ? value : null;
             }
         }
 
@@ -77,7 +74,7 @@ namespace LanguageFileHandler
 
         #endregion Properties
 
-        #region Methodes
+        #region Methods
 
         /// <summary>
         /// This function search for the language keys in
@@ -90,11 +87,10 @@ namespace LanguageFileHandler
         {
             ProjectPath = strProjectPath;
 
-            if (ProjectPath != null)
-            {
-                ProcessDirectory(ProjectPath);
-                GetAllLanguageKeysInProjectFiles();
-            }
+            if (ProjectPath == null) return;
+
+            ProcessDirectory(ProjectPath);
+            GetAllLanguageKeysInProjectFiles();
         }
 
         /// <summary>
@@ -107,26 +103,25 @@ namespace LanguageFileHandler
             foreach (var filename in ListProjectFiles)
             {
                 // Read the file content and search for the localization function calls.
-                string strFileContent = File.ReadAllText(ProjectPath + filename);
+                var strFileContent = File.ReadAllText(ProjectPath + filename);
 
                 // Remove line feeds
                 strFileContent = strFileContent.Replace('\n', ' ');
                 strFileContent = strFileContent.Replace('\r', ' ');
                 strFileContent = strFileContent.Replace(" ", string.Empty);
 
-                Regex regEx = new Regex(@"GetLanguageTextByXPath\([@][""]([0-9a-zA-Z_/]*)");
-                MatchCollection matchCollection = regEx.Matches(strFileContent);
+                var regEx = new Regex(@"GetLanguageTextByXPath\([@][""]([0-9a-zA-Z_/]*)");
+                var matchCollection = regEx.Matches(strFileContent);
 
                 // Process the found matches and add the language keys to the language key list.
                 foreach (Match match in matchCollection)
                 {
-                    for (int gIdx = 0; gIdx < match.Groups.Count; gIdx++)
+                    for (var gIdx = 0; gIdx < match.Groups.Count; gIdx++)
                     {
-                        if (gIdx == match.Groups.Count - 1)
-                        {
-                            if (!ListOfLangaugeKeysAndProjectFileName.ContainsKey(match.Groups[gIdx].Value))
-                                ListOfLangaugeKeysAndProjectFileName.Add(match.Groups[gIdx].Value, filename);
-                        }
+                        if (gIdx != match.Groups.Count - 1) continue;
+
+                        if (!ListOfLangaugeKeysAndProjectFileName.ContainsKey(match.Groups[gIdx].Value))
+                            ListOfLangaugeKeysAndProjectFileName.Add(match.Groups[gIdx].Value, filename);
                     }
                 }
             }
@@ -141,13 +136,13 @@ namespace LanguageFileHandler
         private void ProcessDirectory(string targetDirectory)
         {
             // Process the list of files found in the directory.
-            string[] fileEntries = Directory.GetFiles(targetDirectory, "*.cs");
-            foreach (string fileName in fileEntries)
+            var fileEntries = Directory.GetFiles(targetDirectory, "*.cs");
+            foreach (var fileName in fileEntries)
                 ProcessFile(fileName.Replace(ProjectPath, ""));
 
             // Recurse into subdirectories of this directory.
-            string[] subdirectoryEntries = Directory.GetDirectories(targetDirectory);
-            foreach (string subdirectory in subdirectoryEntries)
+            var subdirectoryEntries = Directory.GetDirectories(targetDirectory);
+            foreach (var subdirectory in subdirectoryEntries)
                 ProcessDirectory(subdirectory);
         }
 

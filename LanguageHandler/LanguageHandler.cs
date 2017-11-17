@@ -26,89 +26,56 @@ using System;
 using System.Collections.Generic;
 using System.Xml;
 
-namespace LanguageFileHandler
+namespace LanguageHandler
 {
     public class Language
     {
         //        ValidationEventHandler eventHandler = new ValidationEventHandler(Language.);
 
-        #region Variables
+        #region Fields
 
-        private XmlReader _xmlReader;
-        private XmlDocument _xmlDocument;
+        private readonly XmlReader _xmlReader;
+        private readonly XmlDocument _xmlDocument;
         private XmlReaderSettings _xmlReaderSettings;
 
-        private bool _bInitFlag;
-        private string _strLanguageFile;
-        private Exception _lastException;
-
         private GetLanguageKeysInProejctFiles _checkLanguageKeysInProejctFiles;
-        private List<string> _languageKeyListOfProject = new List<string>();
-        private List<string> _invalidLanguageKeysOfProject = new List<string>();
 
         private GetLanguageKeysInLanguageXml _checkLanguageKeysInXmlFile;
-        private List<string> _languageKeyListOfXml = new List<string>();
-        private List<string> _invalidLanguageKeysOfXml = new List<string>();
 
-        private const string _invalidLanguageKeyReturnValue = "invalid";
+        private const string InvalidLanguageKeyReturnValue = "invalid";
 
-        #endregion Variables
+        #endregion Fields
 
         #region Properties
 
-        public String LanguageFilePath
-        {
-            get { return _strLanguageFile; }
-            set { _strLanguageFile = value; }
-        }
+        public string LanguageFilePath { get; set; }
 
-        public bool InitFlag
-        {
-            get { return _bInitFlag; }
-        }
+        public bool InitFlag { get; }
 
-        public Exception LastException
-        {
-            get { return _lastException; }
-        }
+        public Exception LastException { get; private set; }
 
-        public List<string> LanguageKeyListOfProejct
-        {
-            get { return _languageKeyListOfProject; }
-        }
+        public List<string> LanguageKeyListOfProejct { get; } = new List<string>();
 
-        public List<string> InvalidLanguageKeysOfProject
-        {
-            get { return _invalidLanguageKeysOfProject; }
-        }
+        public List<string> InvalidLanguageKeysOfProject { get; } = new List<string>();
 
-        public List<string> LanguageKeyListOfXml
-        {
-            get { return _languageKeyListOfXml; }
-        }
+        public List<string> LanguageKeyListOfXml { get; } = new List<string>();
 
-        public List<string> InvalidLanguageKeysOfXml
-        {
-            get { return _invalidLanguageKeysOfXml; }
-        }
+        public List<string> InvalidLanguageKeysOfXml { get; } = new List<string>();
 
-        public string InvalidLanguageKeyValue
-        {
-            get { return _invalidLanguageKeyReturnValue; }    
-        }
+        public string InvalidLanguageKeyValue => InvalidLanguageKeyReturnValue;
 
         #endregion
 
-        #region Methodes
+        #region Methods
 
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="strLanguageFile">File name of the language xml file</param>
-        public Language(String strLanguageFile)
+        /// <param name="languageFile">File name of the language XML file</param>
+        public Language(string languageFile)
         {
-            _bInitFlag = false;
-            _strLanguageFile = strLanguageFile;
+            InitFlag = false;
+            LanguageFilePath = languageFile;
 
             // Init language
             try
@@ -119,7 +86,7 @@ namespace LanguageFileHandler
                 //_xmlReaderSettings.ValidationType = ValidationType.DTD;
                 //_xmlReaderSettings.ValidationEventHandler += ValidationCallBack;
 
-                _xmlReader = XmlReader.Create(_strLanguageFile, _xmlReaderSettings);
+                _xmlReader = XmlReader.Create(LanguageFilePath, _xmlReaderSettings);
 
                 // Pass the validating reader to the XML document.
                 // Validation fails due to an undefined attribute, but the 
@@ -127,45 +94,76 @@ namespace LanguageFileHandler
                 _xmlDocument = new XmlDocument();
                 _xmlDocument.Load(_xmlReader);
 
-                _bInitFlag = true;
+                InitFlag = true;
             }
             catch (Exception ex)
             {
-                _lastException = ex;
+                LastException = ex;
 
-                _bInitFlag = false;
-                if (_xmlReader != null)
-                    _xmlReader.Close();
+                InitFlag = false;
+                _xmlReader?.Close();
             }
         }
 
         /// <summary>
         /// Get the language text for a given language key
         /// </summary>
-        /// <param name="strXPath">XPath without "/Language" and language specification (e.g. "/English")</param>
-        /// <param name="strLanguage">Name of the selected language (e.g. "English")</param>
+        /// <param name="givenXpath">XPath without "/Language" and language specification (e.g. "/English")</param>
+        /// <param name="language">Name of the selected language (e.g. "English")</param>
         /// <returns>String with the language text</returns>
-        public string GetLanguageTextByXPath(String strXPath, String strLanguage)
+        public string GetLanguageTextByXPath(string givenXpath, string language)
         {
-            if (_bInitFlag)
+            if (!InitFlag) return InvalidLanguageKeyReturnValue;
+
+            try
             {
-                try
-                {
-                    string XPath = "/Language/" + strLanguage + strXPath;
-                    XmlNode xmlNode = _xmlDocument.SelectSingleNode(XPath);
-                    if (xmlNode != null)
-                        return xmlNode.Attributes["text"].InnerText;
-                    else
-                        return _invalidLanguageKeyReturnValue;
-                }
-                catch (Exception ex)
-                {
-                    _lastException = ex;
-                    return _invalidLanguageKeyReturnValue;
-                }
+                var xPath = "/Language/" + language + givenXpath;
+                var xmlNode = _xmlDocument.SelectSingleNode(xPath);
+                if (xmlNode?.Attributes != null)
+                    return xmlNode.Attributes["text"].InnerText;
+                            
+                return InvalidLanguageKeyReturnValue;
             }
-            else
-                return _invalidLanguageKeyReturnValue;
+            catch (Exception ex)
+            {
+                LastException = ex;
+                return InvalidLanguageKeyReturnValue;
+            }
+        }
+
+        /// <summary>
+        /// Get the language texts for a given language key
+        /// </summary>
+        /// <param name="givenXpath">XPath without "/Language" and language specification (e.g. "/English")</param>
+        /// <param name="language">Name of the selected language (e.g. "English")</param>
+        /// <returns>String list with the language texts</returns>
+        public List<string> GetLanguageTextListByXPath(string givenXpath, string language)
+        {
+            if (!InitFlag) return null;
+
+            try
+            {
+                var xPath = "/Language/" + language + givenXpath;
+                var xmlNodes = _xmlDocument.SelectNodes(xPath);
+                if (xmlNodes == null) return null;
+
+                var textList = new List<string>();
+                foreach (var xmlNode in xmlNodes)
+                {
+                    if (((XmlNode) xmlNode).Attributes == null) break;
+
+                    var xmlAttributeCollection = ((XmlNode) xmlNode).Attributes;
+                    if (xmlAttributeCollection != null)
+                        textList.Add(xmlAttributeCollection["text"].InnerText);
+                }
+
+                return textList;
+            }
+            catch (Exception ex)
+            {
+                LastException = ex;
+                return null;
+            }
         }
 
         /// <summary>
@@ -174,138 +172,130 @@ namespace LanguageFileHandler
         /// <returns>List with the available languages. If no languages are available the function returns null.</returns>
         public List<string> GetAvailableLanguages()
         {
-            if (_bInitFlag)
+            if (!InitFlag) return null;
+
+            try
             {
-                try
+                var xmlNodeList = _xmlDocument.SelectNodes("/Language/*");
+                if (xmlNodeList == null || xmlNodeList.Count == 0) return null;
+
+                var lstLanguages = new List<string>();
+                foreach (XmlNode xmlNode in xmlNodeList)
                 {
-                    XmlNodeList xmlNodeList = _xmlDocument.SelectNodes("/Language/*");
-                    if (xmlNodeList.Count != 0)
-                    {
-                        List<string> lstLanguages = new List<string>();
-                        foreach (XmlNode xmlNode in xmlNodeList)
-                        {
-                            if (xmlNode != null)
-                                lstLanguages.Add(xmlNode.Name);
-                        }
-                        return lstLanguages;
-                    }
-                    else
-                        return null;
+                    if (xmlNode != null)
+                        lstLanguages.Add(xmlNode.Name);
                 }
-                catch (Exception ex)
-                {
-                    _lastException = ex;
-                    return null;
-                }
+                return lstLanguages;
             }
-            return null;
+            catch (Exception ex)
+            {
+                LastException = ex;
+                return null;
+            }
         }
 
         /// <summary>
         /// This function checks if all language keys in the project files
-        /// are available in the language xml file.
+        /// are available in the language XML file.
         /// </summary>
         /// <param name="strProjectPath">Path to the project files with the language keys</param>
         public void CheckLanguageKeysOfProject(string strProjectPath)
         {
-            if (_bInitFlag)
+            if (!InitFlag) return;
+
+            try
             {
-                try
+                // Get all language keys in the project files
+                if (_checkLanguageKeysInProejctFiles == null)
                 {
-                    // Get all language keys in the project files
-                    if (_checkLanguageKeysInProejctFiles == null)
-                    {
-                        _checkLanguageKeysInProejctFiles = new GetLanguageKeysInProejctFiles(strProjectPath);
-                    }
+                    _checkLanguageKeysInProejctFiles = new GetLanguageKeysInProejctFiles(strProjectPath);
+                }
 
-                    // Get all available languages in the language XML file
-                    List<string> availableLanguages = GetAvailableLanguages();
+                // Get all available languages in the language XML file
+                var availableLanguages = GetAvailableLanguages();
 
-                    // Loop through the languages and search for the language keys in the language XML file.
-                    foreach (var languageName in availableLanguages)
+                // Loop through the languages and search for the language keys in the language XML file.
+                foreach (var languageName in availableLanguages)
+                {
+                    foreach (var keyName in _checkLanguageKeysInProejctFiles.ListOfLangaugeKeysAndProjectFileName.Keys)
                     {
-                        foreach (var keyName in _checkLanguageKeysInProejctFiles.ListOfLangaugeKeysAndProjectFileName.Keys)
+                        // Try to get the language key value from the language file and if the return value is invalid
+                        // add it to the invalid language key list.
+                        if (GetLanguageTextByXPath(keyName, languageName) == InvalidLanguageKeyReturnValue)
                         {
-                            // Try to get the language key value from the language file and if the return value is invalid
-                            // add it to the invalid language key list.
-                            if (GetLanguageTextByXPath(keyName, languageName) == _invalidLanguageKeyReturnValue)
-                            {
-                                InvalidLanguageKeysOfProject.Add(String.Format("{0,-15}: {1}", languageName, keyName + " (File: " + _checkLanguageKeysInProejctFiles.ListOfLangaugeKeysAndProjectFileName[keyName]) + ")");
-                            }
+                            InvalidLanguageKeysOfProject.Add(string.Format(@"{0,-15}: {1}", languageName, keyName + " (File: " + _checkLanguageKeysInProejctFiles.ListOfLangaugeKeysAndProjectFileName[keyName]) + ")");
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    _lastException = ex;
-                }
+            }
+            catch (Exception ex)
+            {
+                LastException = ex;
             }
         }
 
         /// <summary>
-        /// This function checks if all language keys in the xml language file
+        /// This function checks if all language keys in the XML language file
         /// are used in the project files.
         /// </summary>
         /// <param name="strProjectPath">Path to the project files with the used language keys</param>
-        public void CheckLanguageKeysOfXML(string strProjectPath)
+        public void CheckLanguageKeysOfXml(string strProjectPath)
         {
-            if (_bInitFlag)
+            if (!InitFlag) return;
+
+            try
             {
-                try
+                // Flag if a XML language key is used or not
+                var bXmlKeyUsed = false;
+
+                // Get all language keys in the project files
+                if (_checkLanguageKeysInProejctFiles == null)
                 {
-                    // Flag if a xml language key is used or not
-                    bool bXMLKeyUsed = false;
-
-                    // Get all language keys in the project files
-                    if (_checkLanguageKeysInProejctFiles == null)
-                    {
-                        _checkLanguageKeysInProejctFiles = new GetLanguageKeysInProejctFiles(strProjectPath);
-                    }
-
-                    // Get all language keys in the project files
-                    if (_checkLanguageKeysInXmlFile == null)
-                    {
-                        _checkLanguageKeysInXmlFile = new GetLanguageKeysInLanguageXml(_xmlDocument);
-                    }
-
-                    // Get all available languages in the language XML file
-                    List<string> availableLanguages = GetAvailableLanguages();
-
-                    foreach (var keyNameXML in _checkLanguageKeysInXmlFile.ListOfLangaugeKeys)
-                    {
-                        foreach (var keyNameProject in _checkLanguageKeysInProejctFiles.ListOfLangaugeKeysAndProjectFileName.Keys)
-                        {
-                            // Loop through the languages and search for the language keys in the language XML file.
-                            foreach (var languageName in availableLanguages)
-                            {
-                                if (keyNameXML == "/Language/" + languageName + keyNameProject)
-                                    bXMLKeyUsed = true;
-                            }
-                        }
-                        if (bXMLKeyUsed == false)
-                        {
-                            string keyName = @"";
-                            // Split XPath in the language and language key
-                            // Remove /Language/ part
-                            keyName = keyNameXML.Remove(0, 1);
-                            keyName = keyName.Remove(0, keyName.IndexOf('/') + 1);
-                            string languageName = keyName.Substring(0, keyName.IndexOf('/') + 1);
-                            languageName = languageName.Remove(keyName.IndexOf('/'), 1);
-                            keyName = keyName.Substring(keyName.IndexOf('/'));
-                            InvalidLanguageKeysOfXml.Add(String.Format("{0,-15}: {1}", languageName, keyName));
-                        }
-
-                        bXMLKeyUsed = false;
-                    }
+                    _checkLanguageKeysInProejctFiles = new GetLanguageKeysInProejctFiles(strProjectPath);
                 }
-                catch (Exception ex)
+
+                // Get all language keys in the project files
+                if (_checkLanguageKeysInXmlFile == null)
                 {
-                    _lastException = ex;
+                    _checkLanguageKeysInXmlFile = new GetLanguageKeysInLanguageXml(_xmlDocument);
                 }
+
+                // Get all available languages in the language XML file
+                var availableLanguages = GetAvailableLanguages();
+
+                foreach (var keyNameXml in _checkLanguageKeysInXmlFile.ListOfLangaugeKeys)
+                {
+                    foreach (var keyNameProject in _checkLanguageKeysInProejctFiles.ListOfLangaugeKeysAndProjectFileName.Keys)
+                    {
+                        // Loop through the languages and search for the language keys in the language XML file.
+                        foreach (var languageName in availableLanguages)
+                        {
+                            if (keyNameXml == "/Language/" + languageName + keyNameProject)
+                                bXmlKeyUsed = true;
+                        }
+                    }
+                    if (bXmlKeyUsed == false)
+                    {
+                        // Split XPath in the language and language key
+                        // Remove /Language/ part
+                        var keyName = keyNameXml.Remove(0, 1);
+                        keyName = keyName.Remove(0, keyName.IndexOf('/') + 1);
+                        var languageName = keyName.Substring(0, keyName.IndexOf('/') + 1);
+                        languageName = languageName.Remove(keyName.IndexOf('/'), 1);
+                        keyName = keyName.Substring(keyName.IndexOf('/'));
+                        InvalidLanguageKeysOfXml.Add(string.Format("{0,-15}: {1}", languageName, keyName));
+                    }
+
+                    bXmlKeyUsed = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                LastException = ex;
             }
         }
 
-        #endregion Methodes
+        #endregion Methods
 
         // Display any warnings or errors.
         //private static void ValidationCallBack(object sender, ValidationEventArgs args)

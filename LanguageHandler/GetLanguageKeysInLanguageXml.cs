@@ -25,29 +25,29 @@ SOFTWARE.
 using System.Collections.Generic;
 using System.Xml;
 
-namespace LanguageFileHandler
+namespace LanguageHandler
 {
-    class GetLanguageKeysInLanguageXml
+    internal class GetLanguageKeysInLanguageXml
     {
-        #region Variables
+        #region Fields
 
         /// <summary>
-        /// This node stores the root node of the language xml file
+        /// This node stores the root node of the language XML file
         /// which is given via constructor parameter.
         /// </summary>
-        private XmlNode _rootNode = null;
+        private readonly XmlNode _rootNode = null;
 
         /// <summary>
         /// Stores the XPath
         /// </summary>
-        private string xPath = @"";
+        private string _xPath = @"";
 
         /// <summary>
-        /// List of all language keys as XPath in the given language xml file
+        /// List of all language keys as XPath in the given language XML file
         /// </summary>
         private List<string> _listOfLangaugeKeys = new List<string>();
 
-        #endregion Variables
+        #endregion Fields
 
         #region Properties
 
@@ -62,10 +62,10 @@ namespace LanguageFileHandler
 
         #endregion Properties
 
-        #region Methodes
+        #region Methods
 
         /// <summary>
-        /// Constructor with the root node of the language xml file.
+        /// Constructor with the root node of the language XML file.
         /// </summary>
         /// <param name="rootNode"></param>
         public GetLanguageKeysInLanguageXml(XmlNode rootNode)
@@ -79,41 +79,39 @@ namespace LanguageFileHandler
         /// <summary>
         /// This function gets all language key as XPath.
         /// The function is a recursive function which loops
-        /// through the nodes of the language xml file.
+        /// through the nodes of the language XML file.
         /// </summary>
         /// <param name="currentNode">Node which should be checked</param>
         private void GetAllLanguageKeysInXml(XmlNode currentNode)
         {
             // Check if the current node is an element node
             if (currentNode.NodeType == XmlNodeType.Element)
-                xPath += "/" + currentNode.Name;
+                _xPath += "/" + currentNode.Name;
 
             // Check the current node has child nodes
-            if (currentNode.HasChildNodes)
+            if (!currentNode.HasChildNodes) return;
+
+            // Loop through the child nodes of the current node
+            foreach (XmlNode childNode in currentNode.ChildNodes)
             {
-                // Loop through the child nodes of the current node
-                foreach (XmlNode childNode in currentNode.ChildNodes)
+                // Recursive call with the new child node
+                GetAllLanguageKeysInXml(childNode);
+
+                // Check is the child node is an element node
+                if (childNode.NodeType != XmlNodeType.Element) continue;
+
+                // If the child node has also child nodes
+                // if not the last node in the XPath has been reached
+                if (!childNode.HasChildNodes)
                 {
-                    // Recursive call with the new child node
-                    GetAllLanguageKeysInXml(childNode);
-
-                    // Check is the child node is an element node
-                    if (childNode.NodeType == XmlNodeType.Element)
-                    {
-                        // If the child node has also child nodes
-                        // if not the last node in the XPath has been reached
-                        if (!childNode.HasChildNodes)
-                        {
-                            // Split XPath
-                            ListOfLangaugeKeys.Add(xPath);
-                        }
-
-                        // Remove the last node of the current XPath
-                        int iLastIndex = xPath.LastIndexOf('/');
-                        if (iLastIndex > 0)
-                            xPath = xPath.Remove(iLastIndex);
-                    }
+                    // Split XPath
+                    ListOfLangaugeKeys.Add(_xPath);
                 }
+
+                // Remove the last node of the current XPath
+                var iLastIndex = _xPath.LastIndexOf('/');
+                if (iLastIndex > 0)
+                    _xPath = _xPath.Remove(iLastIndex);
             }
         }
 

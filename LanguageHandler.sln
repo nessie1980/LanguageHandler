@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LanguageFileHandler", "LanguageFileHandler\LanguageFileHandler.csproj", "{0A6AF7B1-49B9-4933-A78C-2131A87CA9CC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LanguageHandler", "LanguageHandler\LanguageHandler.csproj", "{0A6AF7B1-49B9-4933-A78C-2131A87CA9CC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
