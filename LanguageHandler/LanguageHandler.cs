@@ -38,7 +38,7 @@ namespace LanguageHandler
         private readonly XmlDocument _xmlDocument;
         private XmlReaderSettings _xmlReaderSettings;
 
-        private GetLanguageKeysInProejctFiles _checkLanguageKeysInProejctFiles;
+        private GetLanguageKeysInProjectFiles _checkLanguageKeysInProjectFiles;
 
         private GetLanguageKeysInLanguageXml _checkLanguageKeysInXmlFile;
 
@@ -54,7 +54,7 @@ namespace LanguageHandler
 
         public Exception LastException { get; private set; }
 
-        public List<string> LanguageKeyListOfProejct { get; } = new List<string>();
+        public List<string> LanguageKeyListOfProject { get; } = new List<string>();
 
         public List<string> InvalidLanguageKeysOfProject { get; } = new List<string>();
 
@@ -143,15 +143,17 @@ namespace LanguageHandler
 
             try
             {
+                var textList = new List<string>();
                 var xPath = "/Language/" + language + givenXpath;
                 var xmlNodes = _xmlDocument.SelectNodes(xPath);
-                if (xmlNodes == null) return null;
+                if (xmlNodes == null || xmlNodes.Count <= 0)
+                {
+                    textList.Add(@"invalid");
+                    return textList;
+                }
 
-                var textList = new List<string>();
                 foreach (var xmlNode in xmlNodes)
                 {
-                    if (((XmlNode) xmlNode).Attributes == null) break;
-
                     var xmlAttributeCollection = ((XmlNode) xmlNode).Attributes;
                     if (xmlAttributeCollection != null)
                         textList.Add(xmlAttributeCollection["text"].InnerText);
@@ -162,7 +164,8 @@ namespace LanguageHandler
             catch (Exception ex)
             {
                 LastException = ex;
-                return null;
+                var textList = new List<string> {@"invalid"};
+                return textList;
             }
         }
 
@@ -206,9 +209,9 @@ namespace LanguageHandler
             try
             {
                 // Get all language keys in the project files
-                if (_checkLanguageKeysInProejctFiles == null)
+                if (_checkLanguageKeysInProjectFiles == null)
                 {
-                    _checkLanguageKeysInProejctFiles = new GetLanguageKeysInProejctFiles(strProjectPath);
+                    _checkLanguageKeysInProjectFiles = new GetLanguageKeysInProjectFiles(strProjectPath);
                 }
 
                 // Get all available languages in the language XML file
@@ -217,13 +220,13 @@ namespace LanguageHandler
                 // Loop through the languages and search for the language keys in the language XML file.
                 foreach (var languageName in availableLanguages)
                 {
-                    foreach (var keyName in _checkLanguageKeysInProejctFiles.ListOfLangaugeKeysAndProjectFileName.Keys)
+                    foreach (var keyName in _checkLanguageKeysInProjectFiles.ListOfLanguageKeysAndProjectFileName.Keys)
                     {
                         // Try to get the language key value from the language file and if the return value is invalid
                         // add it to the invalid language key list.
                         if (GetLanguageTextByXPath(keyName, languageName) == InvalidLanguageKeyReturnValue)
                         {
-                            InvalidLanguageKeysOfProject.Add(string.Format(@"{0,-15}: {1}", languageName, keyName + " (File: " + _checkLanguageKeysInProejctFiles.ListOfLangaugeKeysAndProjectFileName[keyName]) + ")");
+                            InvalidLanguageKeysOfProject.Add(string.Format(@"{0,-15}: {1}", languageName, keyName + " (File: " + _checkLanguageKeysInProjectFiles.ListOfLanguageKeysAndProjectFileName[keyName]) + ")");
                         }
                     }
                 }
@@ -249,9 +252,9 @@ namespace LanguageHandler
                 var bXmlKeyUsed = false;
 
                 // Get all language keys in the project files
-                if (_checkLanguageKeysInProejctFiles == null)
+                if (_checkLanguageKeysInProjectFiles == null)
                 {
-                    _checkLanguageKeysInProejctFiles = new GetLanguageKeysInProejctFiles(strProjectPath);
+                    _checkLanguageKeysInProjectFiles = new GetLanguageKeysInProjectFiles(strProjectPath);
                 }
 
                 // Get all language keys in the project files
@@ -263,15 +266,36 @@ namespace LanguageHandler
                 // Get all available languages in the language XML file
                 var availableLanguages = GetAvailableLanguages();
 
-                foreach (var keyNameXml in _checkLanguageKeysInXmlFile.ListOfLangaugeKeys)
+                foreach (var keyNameXml in _checkLanguageKeysInXmlFile.ListOfLanguageKeys)
                 {
-                    foreach (var keyNameProject in _checkLanguageKeysInProejctFiles.ListOfLangaugeKeysAndProjectFileName.Keys)
+                    foreach (var keyNameProject in _checkLanguageKeysInProjectFiles.ListOfLanguageKeysAndProjectFileName.Keys)
                     {
                         // Loop through the languages and search for the language keys in the language XML file.
                         foreach (var languageName in availableLanguages)
                         {
+                            // Check for single line keys
                             if (keyNameXml == "/Language/" + languageName + keyNameProject)
                                 bXmlKeyUsed = true;
+                            else
+                            {
+                                // Check for multiline keys
+                                // Remove last XML part
+                                var xmlSplitParts = keyNameXml.Split('/');
+                                var xmlKeyNameLines = @"";
+
+                                for (var i = 0; i < xmlSplitParts.Length - 1; i++)
+                                {
+                                    if (xmlSplitParts[i] == @"") continue;
+
+                                    xmlKeyNameLines += "/";
+                                    xmlKeyNameLines += xmlSplitParts[i];
+                                }
+
+                                xmlKeyNameLines += "/*";
+
+                                if (xmlKeyNameLines == "/Language/" + languageName + keyNameProject)
+                                    bXmlKeyUsed = true;
+                            }
                         }
                     }
                     if (bXmlKeyUsed == false)
@@ -283,7 +307,7 @@ namespace LanguageHandler
                         var languageName = keyName.Substring(0, keyName.IndexOf('/') + 1);
                         languageName = languageName.Remove(keyName.IndexOf('/'), 1);
                         keyName = keyName.Substring(keyName.IndexOf('/'));
-                        InvalidLanguageKeysOfXml.Add(string.Format("{0,-15}: {1}", languageName, keyName));
+                        InvalidLanguageKeysOfXml.Add($"{languageName,-15}: {keyName}");
                     }
 
                     bXmlKeyUsed = false;

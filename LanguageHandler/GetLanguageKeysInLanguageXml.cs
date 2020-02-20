@@ -32,33 +32,18 @@ namespace LanguageHandler
         #region Fields
 
         /// <summary>
-        /// This node stores the root node of the language XML file
-        /// which is given via constructor parameter.
-        /// </summary>
-        private readonly XmlNode _rootNode = null;
-
-        /// <summary>
         /// Stores the XPath
         /// </summary>
         private string _xPath = @"";
-
-        /// <summary>
-        /// List of all language keys as XPath in the given language XML file
-        /// </summary>
-        private List<string> _listOfLangaugeKeys = new List<string>();
 
         #endregion Fields
 
         #region Properties
 
-        public List<string> ListOfLangaugeKeys
-        {
-            get { return _listOfLangaugeKeys; }
-            internal set
-            {
-                _listOfLangaugeKeys = value;
-            }
-        }
+        /// <summary>
+        /// List of all language keys as XPath in the given language XML file
+        /// </summary>
+        public List<string> ListOfLanguageKeys { get; internal set; } = new List<string>();
 
         #endregion Properties
 
@@ -70,10 +55,10 @@ namespace LanguageHandler
         /// <param name="rootNode"></param>
         public GetLanguageKeysInLanguageXml(XmlNode rootNode)
         {
-            _rootNode = rootNode;
+            var rootNode1 = rootNode;
 
-            if (_rootNode != null)
-                GetAllLanguageKeysInXml(_rootNode);
+            if (rootNode1 != null)
+                GetAllLanguageKeysInXml(rootNode1);
         }
 
         /// <summary>
@@ -105,7 +90,7 @@ namespace LanguageHandler
                 if (!childNode.HasChildNodes)
                 {
                     // Split XPath
-                    ListOfLangaugeKeys.Add(_xPath);
+                    ListOfLanguageKeys.Add(_xPath);
                 }
 
                 // Remove the last node of the current XPath

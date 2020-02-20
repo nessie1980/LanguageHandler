@@ -28,7 +28,7 @@ using System.Text.RegularExpressions;
 
 namespace LanguageHandler
 {
-    public class GetLanguageKeysInProejctFiles
+    public class GetLanguageKeysInProjectFiles
     {
         #region Fields
 
@@ -37,40 +37,28 @@ namespace LanguageHandler
         /// </summary>
         private string _projectPath;
 
-        /// <summary>
-        /// List with all .cs files of the project
-        /// </summary>
-        private readonly List<string> _listProjectFiles = new List<string>();
-
-        /// <summary>
-        /// List of all language keys in the .cs files as key and as value the .cs file name
-        /// </summary>
-        private readonly Dictionary<string, string> _listOfLangaugeKeysAndProjectFileName = new Dictionary<string, string>();
-
         #endregion Fields
 
         #region Properties
 
         public string ProjectPath
         {
-            get { return _projectPath; }
+            get => _projectPath;
 
-            internal set
-            {
+            internal set =>
                 // Check if the path is valid
                 _projectPath = Directory.Exists(value) ? value : null;
-            }
         }
 
-        public List<string> ListProjectFiles
-        {
-            get { return _listProjectFiles; }
-        }
+        /// <summary>
+        /// List with all .cs files of the project
+        /// </summary>
+        public List<string> ListProjectFiles { get; } = new List<string>();
 
-        public Dictionary<string, string> ListOfLangaugeKeysAndProjectFileName
-        {
-            get { return _listOfLangaugeKeysAndProjectFileName; }
-        }
+        /// <summary>
+        /// List of all language keys in the .cs files as key and as value the .cs file name
+        /// </summary>
+        public Dictionary<string, string> ListOfLanguageKeysAndProjectFileName { get; } = new Dictionary<string, string>();
 
         #endregion Properties
 
@@ -83,7 +71,7 @@ namespace LanguageHandler
         /// given path.
         /// </summary>
         /// <param name="strProjectPath"></param>
-        public GetLanguageKeysInProejctFiles(string strProjectPath)
+        public GetLanguageKeysInProjectFiles(string strProjectPath)
         {
             ProjectPath = strProjectPath;
 
@@ -110,18 +98,18 @@ namespace LanguageHandler
                 strFileContent = strFileContent.Replace('\r', ' ');
                 strFileContent = strFileContent.Replace(" ", string.Empty);
 
-                var regEx = new Regex(@"GetLanguageTextByXPath\([@][""]([0-9a-zA-Z_/]*)");
+                var regEx = new Regex(@"(GetLanguageTextByXPath|GetLanguageTextListByXPath)\([@][""]([0-9a-zA-Z_\/*]*)");
                 var matchCollection = regEx.Matches(strFileContent);
 
                 // Process the found matches and add the language keys to the language key list.
                 foreach (Match match in matchCollection)
                 {
-                    for (var gIdx = 0; gIdx < match.Groups.Count; gIdx++)
+                    for (var gIdx = 1; gIdx < match.Groups.Count; gIdx++)
                     {
                         if (gIdx != match.Groups.Count - 1) continue;
 
-                        if (!ListOfLangaugeKeysAndProjectFileName.ContainsKey(match.Groups[gIdx].Value))
-                            ListOfLangaugeKeysAndProjectFileName.Add(match.Groups[gIdx].Value, filename);
+                        if (!ListOfLanguageKeysAndProjectFileName.ContainsKey(match.Groups[gIdx].Value))
+                            ListOfLanguageKeysAndProjectFileName.Add(match.Groups[gIdx].Value, filename);
                     }
                 }
             }
@@ -141,9 +129,9 @@ namespace LanguageHandler
                 ProcessFile(fileName.Replace(ProjectPath, ""));
 
             // Recurse into subdirectories of this directory.
-            var subdirectoryEntries = Directory.GetDirectories(targetDirectory);
-            foreach (var subdirectory in subdirectoryEntries)
-                ProcessDirectory(subdirectory);
+            var subDirectoryEntries = Directory.GetDirectories(targetDirectory);
+            foreach (var subDirectory in subDirectoryEntries)
+                ProcessDirectory(subDirectory);
         }
 
         /// <summary>
