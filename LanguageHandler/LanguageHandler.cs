@@ -143,15 +143,17 @@ namespace LanguageHandler
 
             try
             {
+                var textList = new List<string>();
                 var xPath = "/Language/" + language + givenXpath;
                 var xmlNodes = _xmlDocument.SelectNodes(xPath);
-                if (xmlNodes == null) return null;
+                if (xmlNodes == null || xmlNodes.Count <= 0)
+                {
+                    textList.Add(@"invalid");
+                    return textList;
+                }
 
-                var textList = new List<string>();
                 foreach (var xmlNode in xmlNodes)
                 {
-                    if (((XmlNode) xmlNode).Attributes == null) break;
-
                     var xmlAttributeCollection = ((XmlNode) xmlNode).Attributes;
                     if (xmlAttributeCollection != null)
                         textList.Add(xmlAttributeCollection["text"].InnerText);
@@ -162,7 +164,8 @@ namespace LanguageHandler
             catch (Exception ex)
             {
                 LastException = ex;
-                return null;
+                var textList = new List<string> {@"invalid"};
+                return textList;
             }
         }
 
